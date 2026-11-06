@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-06 — Manufacturer reply and follow-up clarified
+
+- Added a dated summary of Seeed’s November 4 support reply, separating its bandwidth, power, antenna and host statements from unresolved documentation questions.
+- Recorded the follow-up’s exact running +10 dBm/SF9 profile, report-page request, antenna/cable details and host-integration questions.
+- Clarified that the reply did not confirm coverage for the current 500 kHz build and that a final RF-team answer is still pending.
+- Documentation only; no radio settings or firmware changed.
+
 ## 2026-11-06 — Next experiment recorded
 
 - Recorded remote store-and-forward logging as the next attempt after the current build’s validation, before automatic website reporting.
