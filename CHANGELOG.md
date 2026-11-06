@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-06 — Next experiment recorded
+
+- Recorded remote store-and-forward logging as the next attempt after the current build’s validation, before automatic website reporting.
+- Added the visit-and-collect exchange, onboard-flash sizing assumptions, safe acknowledgment/reclaim requirements, timekeeping questions and interruption/power-loss tests.
+- Existing hardware is the first test candidate; no SD card, RTC or replacement board has been selected as a requirement.
+- Planning/documentation only; no firmware behavior changed.
+
 ## 2026-11-06 — Dedicated repository foundation
 
 - Added the project README, explicit transmitter/gateway terminology, wiring, Arduino setup and troubleshooting.

@@ -32,8 +32,9 @@ The solar voltage change is consistent with charging, but it is not a measuremen
 3. Calibrate/check the probe against an appropriate reference and keep bench/air data clearly marked.
 4. Measure battery-only transmitter current and track morning battery voltage during the solar trial, including cloudy periods.
 5. Test weather protection, installation, range, restarts, router outages and storage limits.
-6. Add private, authenticated website reporting in stages. Keep test readings separate from accepted field observations.
-7. Consider model use only after measurement quality, metadata, continuity and validation support it.
+6. **Next experiment after the current validation: remote store-and-forward.** Log on the transmitter’s onboard flash with no permanent gateway; collect missing records during a site visit using verified batches and safe acknowledgments. Start with existing hardware and test timekeeping, power loss, interrupted downloads and confirmed-record reclaim. See the [experiment plan](store-and-forward.md). This is not implemented yet.
+7. Add private, authenticated website reporting in stages. Keep test readings separate from accepted field observations.
+8. Consider model use only after measurement quality, metadata, continuity and validation support it.
 
 There is no measured “runs forever” solar result, guaranteed field battery life, finished national fleet management, or completed FCC compliance claim.
 

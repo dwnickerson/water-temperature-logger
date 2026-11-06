@@ -58,6 +58,14 @@ The setup hotspot has no password. The home router still requires its own passwo
 
 For the OLED, see [display behavior and weather](docs/display.md). For the solar-light experiment, see [solar testing](docs/solar.md).
 
+## Next experiment: collect logs during a site visit
+
+**After validating the current build**, I want to try remote store-and-forward logging: the transmitter saves readings even when no gateway is present, then transfers its missing records when I arrive with a portable gateway. The gateway would verify and save each batch before acknowledging it; only confirmed records would be reclaimed on the transmitter.
+
+The first attempt will use the existing boards and onboard flash, not require an SD card. Timekeeping, power use, interrupted-transfer recovery and safe acknowledgments still need design and testing. **This is planned, not in the current sketches.**
+
+Read the [store-and-forward experiment plan](docs/store-and-forward.md). Automatic website reporting follows as a separate later stage.
+
 ## What is not finished
 
 Field calibration, installed range, all-weather reliability, battery-only current/runtime, and solar energy balance are not yet established. The transmitter has no stored backlog, acknowledgments, or resend mechanism. There is one deployment configuration per gateway, not a complete multi-probe deployment manager.
