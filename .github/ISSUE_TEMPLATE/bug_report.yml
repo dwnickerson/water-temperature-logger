@@ -1,0 +1,39 @@
+name: Bug report
+description: Report a reproducible firmware or documentation problem.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "For sensitive security reports, read SECURITY.md first. Do not post passwords, keys or private location data."
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Gateway with SH1106 display
+        - Gateway without display
+        - nRF52840 transmitter
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Firmware commit / revision
+      description: Include the exact sketch variant and commit if known.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Hardware and software
+      description: Board/carrier, probe/display, USB or battery, core and library versions.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Expected behavior, actual result and reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant sanitized Serial output or screenshots
+      description: Remove credentials, network identifiers and private location data.

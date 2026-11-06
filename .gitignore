@@ -1,0 +1,32 @@
+# Local builds and tool caches
+build/
+build-*/
+compile-output/
+.arduino/
+.pio/
+*.elf
+*.bin
+*.hex
+*.uf2
+*.o
+*.a
+*.map
+*.d
+
+# Local configuration / secrets
+.env
+.env.*
+!.env.example
+secrets.h
+wifi_credentials.h
+
+# Private observations / local exports (keep deliberate examples separately)
+private-data/
+local-logs/
+water_temp_log*.csv
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+*~
