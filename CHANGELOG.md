@@ -3,8 +3,7 @@
 ## Unreleased — Display gateway rev 10 / no-display gateway rev 8
 
 - Add a saved Fahrenheit offset for an identified probe. New CSV rows store the adjusted reading, raw reading and applied offset. Older readings are unchanged.
-- Move network search above network selection and make Settings, CSV downloads and the manual Southern Bluegill observation form easier to find.
-- Automatic or batch reporting remains pending private ingestion.
+- Move network search above network selection and make Settings and CSV downloads easier to find.
 
 ## 2026-11-12 — Gateway downloads synced and outdoor test started
 

@@ -79,9 +79,3 @@ dashboard and OLED. Old rows keep their original values and have blank new
 fields. Sensor-fault rows have no temperature or offset. The firmware retains the
 v4 file as a separate backup and needs enough free flash to copy it. Download the
 current CSV before updating, keep erase disabled, and verify logging after upload.
-
-**Logs and reporting** links to the Southern Bluegill form for manual submission of
-an individual field observation. The form is separate from the CSV download and
-does not accept a batch log through the gateway. Automated uploads need a
-private HTTPS endpoint with per-gateway credentials, deployment opt-in, duplicate
-protection and retry after outages. Bench/air readings stay out of field reporting.
