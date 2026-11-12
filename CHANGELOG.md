@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-12 — Gateway downloads synced and outdoor test started
+
+- Imported the published November 11 Wi-Fi setup builds: display revision 9 and no-display revision 7. Both pause saved-network reconnects during setup and print hotspot diagnostics. No-display hardware validation is pending; the underlying cause of the hotspot issue remains unconfirmed.
+- Recorded the first outdoor battery-only reading: 3.97 V at 5:29:34 AM CST from a 3,000 mAh battery, with no solar connected.
+
 ## 2026-11-06 — Manufacturer reply and follow-up clarified
 
 - Added a dated summary of Seeed’s November 4 support reply, separating its bandwidth, power, antenna and host statements from unresolved documentation questions.

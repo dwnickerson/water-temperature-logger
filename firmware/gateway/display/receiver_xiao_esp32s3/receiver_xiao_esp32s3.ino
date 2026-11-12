@@ -1,5 +1,5 @@
 // Southern Bluegill / XIAO ESP32S3 + B2B Wio-SX1262 kit (102010611).
-// Receiver revision 8: centered SH1106 logo/screens, always-on cycle and optional weather. CSV/settings retained.
+// Receiver revision 9: Wi-Fi setup diagnostic based on revision 8. centered SH1106 logo/screens, always-on cycle and optional weather. CSV/settings retained.
 // OLED optional; SD disabled. Hold the Wio USER button (GPIO21) for 5 s for Wi-Fi setup.
 // New board starts a NEW filesystem; old receiver logs/settings do not migrate automatically.
 // Enabled reception at 907.8 MHz / 500 kHz / SF9 / CR4/7. No LoRa TX/ACK/relay.
@@ -180,6 +180,22 @@ void loadWifiSettings(){
      !memchr(loaded.password,0,sizeof(loaded.password)) || !loaded.ssid[0])return;
   savedWifi=loaded;haveSavedWifi=true;wifiMessage="Connecting to saved Wi-Fi";
 }
+void printSetupRadioState(){
+  wifi_mode_t mode=WIFI_MODE_NULL;
+  uint8_t primary=0;
+  wifi_second_chan_t secondary=WIFI_SECOND_CHAN_NONE;
+  wifi_config_t config={};
+  const esp_err_t modeResult=esp_wifi_get_mode(&mode);
+  const esp_err_t channelResult=esp_wifi_get_channel(&primary,&secondary);
+  const esp_err_t configResult=esp_wifi_get_config(WIFI_IF_AP,&config);
+  const char* modeName=mode==WIFI_MODE_APSTA?"AP+STA":
+    (mode==WIFI_MODE_AP?"AP":(mode==WIFI_MODE_STA?"STA":"off"));
+  Serial.printf("Wi-Fi diag: mode=%s (err=%d) channel=%u (err=%d) AP-config=%d hidden=%d clients=%u STA-status=%d\n",
+    modeName,(int)modeResult,(unsigned)primary,(int)channelResult,(int)configResult,
+    configResult==ESP_OK?(int)config.ap.ssid_hidden:-1,
+    (unsigned)WiFi.softAPgetStationNum(),(int)WiFi.status());
+}
+
 void stopWifiSetup(){
   if(!setupActive)return;
   if(scanBusy)esp_wifi_scan_stop();
@@ -187,15 +203,24 @@ void stopWifiSetup(){
   setupActive=false;setupToken="";setupCloseAt=0;scanReady=false;setupCloseRequested=false;
   if(scanBusy){WiFi.scanDelete();scanBusy=false;}
   else WiFi.scanDelete();
+  lastWifiCheck=millis();
+  if(WiFi.status()!=WL_CONNECTED)beginSavedWifi();
+  else WiFi.setAutoReconnect(true);
   screenStarted=millis();updateDisplay();
 }
 void startWifiSetup(){
   if(setupActive){setupStarted=millis();screen(true);return;}
-  WiFi.mode(WIFI_AP_STA);
   IPAddress ip(192,168,4,1),mask(255,255,255,0);
   // Avoid colliding with a home router using the usual setup subnet.
   if(WiFi.status()==WL_CONNECTED && WiFi.localIP()[0]==192 && WiFi.localIP()[1]==168 && WiFi.localIP()[2]==4)ip=IPAddress(192,168,8,1);
-  if(!WiFi.softAPConfig(ip,ip,mask) || !WiFi.softAP(setupSSID.c_str(),nullptr,1,0,2)){
+  // Pause both Arduino auto-reconnect and our timed retries while serving setup.
+  // Disconnect without erasing credentials; keep STA available for scan/join.
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect(false,false);
+  if(!WiFi.mode(WIFI_AP_STA) || !WiFi.softAPConfig(ip,ip,mask) ||
+      !WiFi.softAP(setupSSID.c_str(),nullptr,1,0,2)){
+    printSetupRadioState();
+    WiFi.mode(WIFI_STA);lastWifiCheck=millis();beginSavedWifi();
     wifiMessage="Setup hotspot failed; hold USER to retry";Serial.println(wifiMessage);return;
   }
   setupToken=String(esp_random(),HEX)+String(esp_random(),HEX);
@@ -205,10 +230,11 @@ void startWifiSetup(){
   screen(true);
   Serial.print("Wi-Fi setup: join ");Serial.println(setupSSID);
   Serial.print("Open http://");Serial.println(WiFi.softAPIP());
+  printSetupRadioState();
 }
 void failWifiAttempt(const String& reason){
   wifiTrying=false;wifiBeginPending=false;memset(&candidateWifi,0,sizeof(candidateWifi));
-  WiFi.disconnect(false,false);beginSavedWifi();
+  WiFi.disconnect(false,false); // Keep the hotspot available for another attempt.
   wifiMessage=reason+(haveSavedWifi?" Previous saved settings retained.":" Try again.");
   updateDisplay();
 }
@@ -223,7 +249,6 @@ void serviceWifi(){
         WiFi.setAutoReconnect(false);WiFi.disconnect(false,false);
       }
       stopWifiSetup();
-      if(cancelled)beginSavedWifi();
       wifiMessage=haveSavedWifi?"Setup closed; saved Wi-Fi retained.":"Setup closed; hold USER for 5 seconds to configure Wi-Fi.";
     }
     return;
@@ -239,7 +264,7 @@ void serviceWifi(){
         failWifiAttempt("Connected, but saving settings failed.");
       }else{
         savedWifi=candidateWifi;haveSavedWifi=true;memset(&candidateWifi,0,sizeof(candidateWifi));
-        wifiTrying=false;WiFi.setAutoReconnect(true);
+        wifiTrying=false;
         wifiMessage="Connected and saved. Setup shuts down in 10 seconds. Rejoin your home Wi-Fi to open the dashboard.";
         setupSucceeded=true;setupCloseAt=now+10000UL;updateDisplay();
       }
@@ -250,7 +275,7 @@ void serviceWifi(){
   if(setupActive && !wifiTrying &&
       ((setupCloseAt && deadlineReached(now,setupCloseAt)) || now-setupStarted>=SETUP_WINDOW_MS))stopWifiSetup();
   // A router outage does not reopen an unauthenticated setup hotspot.
-  if(!wifiTrying && !scanBusy && haveSavedWifi && WiFi.status()!=WL_CONNECTED && now-lastWifiCheck>=30000UL){
+  if(!setupActive && !wifiTrying && !scanBusy && haveSavedWifi && WiFi.status()!=WL_CONNECTED && now-lastWifiCheck>=30000UL){
     lastWifiCheck=now;WiFi.disconnect(false,false);beginSavedWifi();
   }
 }
@@ -377,6 +402,7 @@ int batteryPercent(float v) {
 
 void updateDisplay() {
   lastDisplayMillis=millis();
+  if(setupActive)printSetupRadioState();
   if(!screenOn)return;
   if(setupActive){
     Serial.printf("Wi-Fi setup: %s | http://%s/wifi | %s\n",setupSSID.c_str(),WiFi.softAPIP().toString().c_str(),wifiMessage.c_str());
@@ -1035,7 +1061,7 @@ void handleSettingsPage(){
 const char PAGE[] PROGMEM = R"rawliteral(
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Water temperature logger</title>
 <style>body{font:16px system-ui;margin:20px auto;padding:0 16px;max-width:900px;background:#eef3f6;color:#183047}section{background:white;border-radius:12px;padding:16px;margin:14px 0}button,a{margin:5px}button{padding:10px;border-radius:6px;border:1px solid #789;background:#fff}svg{width:100%;touch-action:pan-y}text{fill:#345;font-size:12px}.warn{color:#a21c16;font-weight:bold}#now{font-size:2.3rem;margin:0}.muted{color:#526778}button[aria-pressed="true"]{background:#183047;color:white;border-color:#183047}button:focus-visible,a:focus-visible{outline:3px solid #efae32;outline-offset:3px}button:active{transform:translateY(1px)}button:disabled{opacity:.55;cursor:wait}.feedback{min-height:1.5em;font-weight:600}</style>
-<h1>Water temperature logger</h1><p class="muted">Receiver revision 8 · Seeed ESP32S3 · radio diagnostics · local logging · cloud reporting off</p><p><a href="/settings">Settings: location and depth</a> · <a href="/deployment-history.csv">Save deployment history</a></p><p>To change Wi-Fi, hold the receiver USER button for 5 seconds, then join the Bluegill setup network. Logs are retained. Optional SH1106 display stays on and cycles. Short USER toggles; hold 5 seconds for Wi-Fi setup. Display weather: Open-Meteo / GeoNames; modeled air conditions, not probe data.</p><section><h2 id="now">Waiting for data</h2><p id="fresh"></p><p id="change"></p><p id="health"></p><p id="storage"></p><p id="receiverInfo" class="muted"></p><p>Deployment details are recorded per reading after Settings are saved. Cloud reporting is off.</p></section>
+<h1>Water temperature logger</h1><p class="muted">Receiver revision 9 · Seeed ESP32S3 · radio diagnostics · local logging · cloud reporting off</p><p><a href="/settings">Settings: location and depth</a> · <a href="/deployment-history.csv">Save deployment history</a></p><p>To change Wi-Fi, hold the receiver USER button for 5 seconds, then join the Bluegill setup network. Logs are retained. Optional SH1106 display stays on and cycles. Short USER toggles; hold 5 seconds for Wi-Fi setup. Display weather: Open-Meteo / GeoNames; modeled air conditions, not probe data.</p><section><h2 id="now">Waiting for data</h2><p id="fresh"></p><p id="change"></p><p id="health"></p><p id="storage"></p><p id="receiverInfo" class="muted"></p><p>Deployment details are recorded per reading after Settings are saved. Cloud reporting is off.</p></section>
 <section><button data-h="24" aria-pressed="true">24 hours</button><button data-h="168" aria-pressed="false">7 days</button><button data-h="0" aria-pressed="false">All current log</button><p id="rangeFeedback" class="feedback" role="status" aria-live="polite">Showing last 24 hours</p><p id="stats"></p><h2>Temperature (°F)</h2><svg id="temp" viewBox="0 0 700 270" role="img" aria-label="Temperature history"></svg><p id="detail">Tap a chart to inspect a reading.</p></section>
 <section><h2>Field battery voltage (V)</h2><svg id="batt" viewBox="0 0 700 270" role="img" aria-label="Battery voltage history"></svg><p class="muted">Voltage is not a calibrated battery percentage.</p></section>
 <section><h2>Radio link diagnostics</h2><p id="radioLatest">Waiting for a packet received this receiver boot.</p><p id="radioMargin" class="muted"></p><p id="reportGaps"></p><p id="reportTiming"></p><p class="muted">Gap statistics use the selected period in the current log. Sequence gaps are counted separately for each transmitter and boot ID, between its first and last observed sequence only. Receiver outages and failed saves can also cause gaps. No missing count is inferred across transmitter resets or beyond the latest report. Distance cannot be calculated reliably from RSSI.</p><svg id="rssi" viewBox="0 0 700 270" role="img" aria-label="Received signal strength in dBm"></svg><p>RSSI describes received packets; it does not establish packet delivery rate.</p></section>
@@ -1187,7 +1213,7 @@ bool startRadio() {
 void setup() {
   Serial.begin(115200);
   delay(300); // USB CDC startup; no indefinite wait for a connected computer.
-  Serial.println("Bluegill receiver revision 8 / XIAO ESP32S3 / SH1106");
+  Serial.println("Bluegill receiver revision 9 / XIAO ESP32S3 / SH1106 / Wi-Fi setup diagnostic");
   initOLED();brandStarted=millis();cycleStarted=brandStarted;screenStarted=millis();
   // Storage: internal flash, plus the SD card if one is connected
   flashOk=mountFlashSafely(); // auto-initialize ONLY a completely erased partition

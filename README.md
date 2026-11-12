@@ -30,8 +30,8 @@ Use **one gateway sketch**, plus the transmitter sketch. Open the `.ino` from it
 
 | Role / version | Hardware | Source |
 |---|---|---|
-| Gateway **with display**, revision 8 | XIAO ESP32S3 + matching B2B Wio-SX1262 + optional 1.3-inch SH1106 | [Display sketch](firmware/gateway/display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino) |
-| Gateway **without display**, revision 6 | XIAO ESP32S3 + matching B2B Wio-SX1262 | [No-display sketch](firmware/gateway/no-display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino) |
+| Gateway **with display**, revision 9 | XIAO ESP32S3 + matching B2B Wio-SX1262 + optional 1.3-inch SH1106 | [Display sketch](firmware/gateway/display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino) |
+| Gateway **without display**, revision 7 | XIAO ESP32S3 + matching B2B Wio-SX1262 | [No-display sketch](firmware/gateway/no-display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino) |
 | Transmitter, flash sleep fix revision 2 | XIAO nRF52840 + through-hole Wio-SX1262 + one DS18B20 | [Transmitter sketch](firmware/transmitter/xmiter_nrf52840/xmiter_nrf52840.ino) |
 
 Both gateway builds provide Wi-Fi setup, local logging, CSV export, graphs, deployment settings, and radio diagnostics. The display build adds the centered logo, continuously cycling OLED screens, and location-based time/weather. The no-display build has no OLED or weather dependencies. See [setup instructions](docs/getting-started.md) for exact board packages and library versions.
@@ -65,6 +65,8 @@ For the OLED, see [display behavior and weather](docs/display.md). For the solar
 The first attempt will use the existing boards and onboard flash, not require an SD card. Timekeeping, power use, interrupted-transfer recovery and safe acknowledgments still need design and testing. **This is planned, not in the current sketches.**
 
 Read the [store-and-forward experiment plan](docs/store-and-forward.md). Automatic website reporting follows as a separate later stage.
+
+The [project status](docs/status.md#outdoor-battery-only-test) records the November 12 outdoor battery-only test baseline.
 
 ## What is not finished
 

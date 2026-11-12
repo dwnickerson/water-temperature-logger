@@ -38,8 +38,8 @@ The firmware uses **LittleFS** in that filesystem partition. Do not choose Maxim
 
 | Gateway variant | Install in Library Manager |
 |---|---|
-| No display, revision 6 | **RadioLib 7.1.2** |
-| SH1106 display, revision 8 | **RadioLib 7.1.2**, **U8g2 2.36.17**, **ArduinoJson 7.4.2** |
+| No display, revision 7 | **RadioLib 7.1.2** |
+| SH1106 display, revision 9 | **RadioLib 7.1.2**, **U8g2 2.36.17**, **ArduinoJson 7.4.2** |
 
 WiFi, FS, LittleFS, Preferences, WebServer, SD, DNSServer, HTTPClient and WiFiClientSecure are supplied by the ESP32 core. The no-display version does not need U8g2 or ArduinoJson.
 
