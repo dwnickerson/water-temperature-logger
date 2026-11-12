@@ -64,3 +64,24 @@ Graphs show the current log with 24-hour, seven-day and all-current-log views. A
 RSSI and SNR describe packets that arrived; they do not establish delivery rate or distance. Sequence-gap diagnostics are grouped by transmitter and boot ID, between observed sequence numbers. They cannot count missed reports before the first/after the latest observed report or across resets. Receiver downtime and failed saves can also produce apparent gaps.
 
 The gateway may receive packets from more than one transmitter, but there is only **one deployment configuration per gateway** in this revision. Do not describe it as a finished multi-probe metadata or dashboard system.
+
+## Probe calibration (unreleased)
+
+In **Settings → Probe calibration**, wait for an identified probe to report. Compare
+the probe with a reference thermometer in the same stirred water after both settle.
+Enter the reference temperature minus the probe temperature in °F (for example,
+`-1.2` if the probe reads 1.2 °F high). The receiver saves one probe offset; saving
+for another probe replaces it. Set it to `0` to turn correction off.
+
+The v5 CSV retains the original 19 columns and adds `temp_raw_f` and
+`calibration_offset_f`. `temp_f` is the value after correction and drives the
+dashboard and OLED. Old rows keep their original values and have blank new
+fields. Sensor-fault rows have no temperature or offset. The firmware retains the
+v4 file as a separate backup and needs enough free flash to copy it. Download the
+current CSV before updating, keep erase disabled, and verify logging after upload.
+
+**Logs and reporting** links to the Southern Bluegill form for manual submission of
+an individual field observation. The form is separate from the CSV download and
+does not accept a batch log through the gateway. Automated uploads need a
+private HTTPS endpoint with per-gateway credentials, deployment opt-in, duplicate
+protection and retry after outages. Bench/air readings stay out of field reporting.
