@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Display gateway rev 10 / no-display gateway rev 8
+
+- Add a saved Fahrenheit offset for an identified probe. New CSV rows store the adjusted reading, raw reading and applied offset. Older readings are unchanged.
+- Move network search above network selection and make Settings, CSV downloads and the manual Southern Bluegill observation form easier to find.
+- Automatic or batch reporting remains pending private ingestion.
+
 ## 2026-11-12 — Gateway downloads synced and outdoor test started
 
 - Imported the published November 11 Wi-Fi setup builds: display revision 9 and no-display revision 7. Both pause saved-network reconnects during setup and print hotspot diagnostics. No-display hardware validation is pending; the underlying cause of the hotspot issue remains unconfirmed.

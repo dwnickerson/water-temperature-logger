@@ -1,5 +1,5 @@
 // Southern Bluegill / XIAO ESP32S3 + B2B Wio-SX1262 kit (102010611).
-// Receiver revision 7: Wi-Fi setup diagnostic based on revision 6. port of running Heltec revision 5. CSV/settings retained.
+// Receiver revision 8: probe calibration, dashboard and Wi-Fi setup improvements.
 // No OLED or SD required. Hold the Wio USER button (GPIO21) for 5 s for Wi-Fi setup.
 // New board starts a NEW filesystem; old receiver logs/settings do not migrate automatically.
 // Enabled reception at 907.8 MHz / 500 kHz / SF9 / CR4/7. No LoRa TX/ACK/relay.
@@ -13,6 +13,7 @@
 #include <esp_system.h>
 #include <esp_timer.h>
 #include <WebServer.h>
+#include <FS.h>
 #include <LittleFS.h>
 #include <SD.h>
 #include <time.h>
@@ -57,6 +58,10 @@ void startWifiSetup();
 bool wifiSetupIsActive();
 bool appendLine(const String& line);
 bool initLog(fs::FS& fs);
+bool markLogV5(fs::FS& fs);
+bool rotateLog(fs::FS& fs);
+bool writeLine(fs::FS& fs,const String& line,bool card);
+float probeOffset(const String& node);
 void updateDisplay();
 void screen(bool on) {
   screenOn=on;
@@ -263,7 +268,7 @@ const char WIFI_SETUP_PAGE[] PROGMEM=R"wifihtml(
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bluegill Wi-Fi setup</title>
 <style>body{font:16px/1.5 system-ui;margin:24px auto;padding:0 16px;max-width:620px;background:#eef3f6;color:#183047}section{background:white;padding:22px;border-radius:12px;border-top:4px solid #1d6873}label{display:block;margin-top:16px}input,select,button{font:inherit;box-sizing:border-box;min-height:44px;border-radius:6px;padding:10px;max-width:100%}input,select{width:100%;border:1px solid #789}button{background:#1d5361;color:white;border:0;margin:12px 8px 0 0;cursor:pointer}button:disabled{opacity:.55}small{display:block;color:#526778}:focus-visible{outline:3px solid #efae32;outline-offset:3px}#message{min-height:3em;font-weight:600}</style>
 <h1>Connect your receiver</h1><p>Wi-Fi setup · revision 2</p><section><p>Select your home <strong>2.4 GHz Wi-Fi</strong>. No Bluegill setup password is needed. Your router still requires its own password.</p>
-<form id="wifi"><label for="networks">Nearby networks</label><select id="networks"><option value="">Select a network or enter its name below</option></select><button type="button" id="scan">Find networks</button><small id="scanStatus" role="status"></small>
+<form id="wifi"><button type="button" id="scan">Search for networks</button><small id="scanStatus" role="status"></small><label for="networks">Nearby networks</label><select id="networks"><option value="">Select a network or enter its name below</option></select>
 <label for="ssid">Wi-Fi network name</label><input id="ssid" name="ssid" maxlength="32" required autocomplete="off" autocapitalize="none" spellcheck="false">
 <label for="password">Home Wi-Fi password</label><input id="password" name="password" type="password" maxlength="64" autocomplete="new-password" autocapitalize="none" spellcheck="false"><small>Leave blank only if your home network has no password. A blank field does not reuse an old password.</small>
 <label><input type="checkbox" id="show" style="width:auto;min-height:0"> Show password</label><button id="connect" type="submit">Connect and save</button></form>
@@ -274,7 +279,7 @@ const token='__SETUP_TOKEN__',$=id=>document.getElementById(id);let fetching=fal
 async function request(path,options={}){const r=await fetch(path,{cache:'no-store',...options});const data=await r.json();if(!r.ok)throw Error(data.message||'Request failed');return data;}
 function controls(){ $('connect').disabled=closing||connecting||scanning;$('scan').disabled=closing||connecting||scanning;$('finish').disabled=closing;}
 async function poll(){if(fetching||closing)return;fetching=true;try{const s=await request('/wifi/state');if(closing)return;connecting=s.trying;scanning=s.scanning;controls();$('message').textContent=s.message;$('address').textContent=s.connected?'Dashboard on your home Wi-Fi: http://'+s.ip:'';if(s.complete){closing=true;clearInterval(pollTimer);$('wifi').hidden=true;$('finish').hidden=true;$('message').textContent='Connected and saved. Setup shuts down in 10 seconds. Rejoin your home Wi-Fi and use the dashboard address below. Saved readings are unchanged.';return;}
-if(scanning)$('scanStatus').textContent='Looking for networks...';else{const n=await request('/wifi/networks');if(closing)return;const current=$('networks').value;$('networks').replaceChildren(new Option('Select a network or enter its name below',''));for(const x of n.networks)$('networks').add(new Option(x.ssid+(x.open?' (open)':''),x.ssid));$('networks').value=current;$('scanStatus').textContent=n.ready?(n.networks.length?'Choose a network, or enter a hidden network name.':'No networks found. Enter the name manually or try again.'):'Tap Find networks, or enter the name manually.';}}
+if(scanning)$('scanStatus').textContent='Looking for networks...';else{const n=await request('/wifi/networks');if(closing)return;const current=$('networks').value;$('networks').replaceChildren(new Option('Select a network or enter its name below',''));for(const x of n.networks)$('networks').add(new Option(x.ssid+(x.open?' (open)':''),x.ssid));$('networks').value=current;$('scanStatus').textContent=n.ready?(n.networks.length?'Choose a network, or enter a hidden network name.':'No networks found. Enter the name manually or try again.'):'Tap Search for networks, or enter the name manually.';}}
 catch(e){if(closing)return;$('message').textContent=e.message+'. If setup closed, rejoin your home Wi-Fi. Hold USER for 5 seconds to reopen setup.';}finally{fetching=false;}}
 $('networks').onchange=()=>{$('ssid').value=$('networks').value;};$('show').onchange=()=>{$('password').type=$('show').checked?'text':'password';};
 $('scan').onclick=async()=>{scanning=true;controls();try{await request('/wifi/scan',{method:'POST',headers:{'X-Setup-Token':token}});}catch(e){$('scanStatus').textContent=e.message;}finally{await poll();}};
@@ -359,7 +364,8 @@ bool wifiSetupIsActive(){return setupActive;}
 
 const char* OLD_LOG_HEADER = "timestamp_utc,temp_f,rssi,batt_v,time_valid,uptime_ms,node_id,boot_id,sequence,quality";
 const char* V3_LOG_HEADER = "timestamp_utc,temp_f,rssi,batt_v,time_valid,uptime_ms,node_id,boot_id,sequence,quality,deployment_revision,location_name,water_type,latitude,longitude,probe_depth_m,deployment_effective_utc";
-const char* LOG_HEADER = "timestamp_utc,temp_f,rssi,batt_v,time_valid,uptime_ms,node_id,boot_id,sequence,quality,deployment_revision,water_body_name,water_type,latitude,longitude,probe_depth_m,deployment_effective_utc,location_name,location_basis";
+const char* V4_LOG_HEADER = "timestamp_utc,temp_f,rssi,batt_v,time_valid,uptime_ms,node_id,boot_id,sequence,quality,deployment_revision,water_body_name,water_type,latitude,longitude,probe_depth_m,deployment_effective_utc,location_name,location_basis";
+const char* LOG_HEADER = "timestamp_utc,temp_f,rssi,batt_v,time_valid,uptime_ms,node_id,boot_id,sequence,quality,deployment_revision,water_body_name,water_type,latitude,longitude,probe_depth_m,deployment_effective_utc,location_name,location_basis,temp_raw_f,calibration_offset_f";
 
 // Uses the SD card for the log when one is present, otherwise internal storage
 fs::FS& logFS() {
@@ -434,36 +440,41 @@ void logReading(const String& payload, float rssi, float snr) {
   latestRSSI=rssi;latestSNR=snr;latestRadioNode=r.node;
   lastRxSeconds=receiverSeconds();
   lastRxMillis=millis(); haveRx=true;
+  const bool validTemp=isfinite(r.temp);
+  const float offset=validTemp?probeOffset(r.node):0;
+  const String rawTemp=validTemp?String(r.temp,1):String("");
+  if(validTemp)r.temp+=offset;
   lastTemp=isfinite(r.temp)?String(r.temp,1):String("FAULT");
   lastBatt=isfinite(r.batt)?String(r.batt,2):String("");
   char ts[24]; timestampNow(ts,sizeof(ts)); lastTime=ts;
   String line=String(ts)+","+(isfinite(r.temp)?String(r.temp,1):String(""))+","+String(rssi,0)+","+lastBatt+","+
-    (String(ts)=="no-time"?"0":"1")+","+String(millis())+","+r.node+","+r.boot+","+r.seq+","+r.quality+deploymentCSV(r.node)+"\n";
+    (String(ts)=="no-time"?"0":"1")+","+String(millis())+","+r.node+","+r.boot+","+r.seq+","+r.quality+deploymentCSV(r.node)+","+rawTemp+","+(validTemp?String(offset,1):String(""))+"\n";
   storageError=!appendLine(line);
   if(!storageError) ++savedReadings;
   Serial.printf("%s: %s",storageError?"SAVE FAILED":"Saved",line.c_str());
 }
-bool markLogV4(fs::FS& fs){
-  if(fs.exists("/log-v4.ready"))return true;
-  File marker=fs.open("/log-v4.ready",FILE_WRITE);if(!marker)return false;
-  bool ok=marker.print("v4\n")==3;marker.flush();marker.close();return ok;
+bool markLogV5(fs::FS& fs){
+  if(fs.exists("/log-v5.ready"))return true;
+  File marker=fs.open("/log-v5.ready",FILE_WRITE);if(!marker)return false;
+  bool ok=marker.print("v5\n")==3;marker.flush();marker.close();return ok;
 }
 bool initLog(fs::FS& fs) {
-  if(fs.exists("/log-v4.csv"))return markLogV4(fs);
-  if(fs.exists("/log-v4.tmp")&&!fs.remove("/log-v4.tmp"))return false;
+  if(fs.exists("/log-v5.csv"))return markLogV5(fs);
+  if(fs.exists("/log-v5.tmp")&&!fs.remove("/log-v5.tmp"))return false;
   bool card=(&fs==static_cast<fs::FS*>(&SD));
   const char* source=nullptr;
-  if(!fs.exists("/log-v4.ready")){
-    if(fs.exists("/log-v3.csv"))source="/log-v3.csv";
-    else if(fs.exists("/log-v2.csv"))source="/log-v2.csv";
+  if(!fs.exists("/log-v5.ready")){
+    if(fs.exists("/log-v4.csv"))source="/log-v4.csv";
+    else if(!fs.exists("/log-v4.ready") && fs.exists("/log-v3.csv"))source="/log-v3.csv";
+    else if(!fs.exists("/log-v4.ready") && fs.exists("/log-v2.csv"))source="/log-v2.csv";
   }
   File old;if(source){old=fs.open(source,FILE_READ);if(!old)return false;}
   uint64_t oldSize=source?old.size():0,total=card?SD.totalBytes():LittleFS.totalBytes(),used=card?SD.usedBytes():LittleFS.usedBytes();
-  if(total<=used||total-used<oldSize+oldSize/3+8192+(card?1024ULL*1024:64ULL*1024)){if(source)old.close();return false;}
-  File out=fs.open("/log-v4.tmp",FILE_WRITE);if(!out){if(source)old.close();return false;}
+  if(total<=used||total-used<oldSize+oldSize/3+16384+(card?1024ULL*1024:64ULL*1024)){if(source)old.close();return false;}
+  File out=fs.open("/log-v5.tmp",FILE_WRITE);if(!out){if(source)old.close();return false;}
   bool ok=out.println(LOG_HEADER)>0;int columns=0;
   if(source){
-    String header=old.readStringUntil('\n');header.trim();columns=header==OLD_LOG_HEADER?10:header==V3_LOG_HEADER?17:0;ok=ok&&columns>0;
+    String header=old.readStringUntil('\n');header.trim();columns=header==OLD_LOG_HEADER?10:header==V3_LOG_HEADER?17:header==V4_LOG_HEADER?19:0;ok=ok&&columns>0;
     while(ok&&old.available()){
       String row;bool tooLong=false;
       while(old.available()){int c=old.read();if(c=='\n')break;if(c>=0){if(row.length()<1024)row+=(char)c;else tooLong=true;}}
@@ -475,11 +486,11 @@ bool initLog(fs::FS& fs) {
         else if(row[i]==','&&!quoted)fields++;
       }
       if(quoted||fields!=columns){ok=false;break;}
-      row+=columns==10?",,,,,,,,,\n":",,\n";ok=out.print(row)==row.length();yield();
+      row+=columns==10?",,,,,,,,,,,\n":columns==17?",,,,\n":",,\n";ok=out.print(row)==row.length();yield();
     }old.close();
   }
   out.flush();out.close();if(!ok)return false;
-  return fs.rename("/log-v4.tmp","/log-v4.csv")&&markLogV4(fs);
+  return fs.rename("/log-v5.tmp","/log-v5.csv")&&markLogV5(fs);
 }
 constexpr size_t LOG_ROTATE_BYTES=512UL*1024;
 uint64_t storageTotal() {return sdOk?SD.totalBytes():(flashOk?LittleFS.totalBytes():0);}
@@ -502,7 +513,7 @@ bool rotateLog(fs::FS& fs) {
   dir.close();if(highest==UINT32_MAX)return false;
   char path[40];snprintf(path,sizeof(path),"/logs/archive-%010lu.csv",(unsigned long)(highest+1));
   if(fs.exists(path))return false; // never overwrite history
-  if(!fs.rename("/log-v4.csv",path))return false;
+  if(!fs.rename("/log-v5.csv",path))return false;
   return initLog(fs); // after a reset here, startup recreates the current file
 }
 bool writeLine(fs::FS& fs,const String& line,bool card) {
@@ -511,10 +522,10 @@ bool writeLine(fs::FS& fs,const String& line,bool card) {
   // Reserve filesystem headroom; never delete old data to make room.
   if(total<=used || total-used<storageReserve(card)+line.length()+4096)return false;
   if(!initLog(fs)) return false;
-  File old=fs.open("/log-v4.csv",FILE_READ);if(!old)return false;
+  File old=fs.open("/log-v5.csv",FILE_READ);if(!old)return false;
   size_t size=old.size();old.close();
   if(size+line.length()>LOG_ROTATE_BYTES && !rotateLog(fs))return false;
-  File f=fs.open("/log-v4.csv",FILE_APPEND);
+  File f=fs.open("/log-v5.csv",FILE_APPEND);
   if(!f) return false;
   size_t n=f.print(line); f.flush(); f.close(); return n==line.length();
 }
@@ -567,7 +578,7 @@ void handleClear() {
   // A per-boot token plus POST prevents accidental link activation/cross-site form submission.
   if(server.header("X-Log-Token")!=clearToken){server.send(403,"text/plain","Reload page before clearing");return;}
   bool ok=(sdOk||flashOk);
-  if(ok && logFS().exists("/log-v4.csv")) ok=logFS().remove("/log-v4.csv");
+  if(ok && logFS().exists("/log-v5.csv")) ok=logFS().remove("/log-v5.csv");
   if(ok) ok=initLog(logFS());
   storageError=!ok;
   server.send(ok?200:500,"text/plain",ok?"Current log cleared; archive and legacy logs retained":"Clear failed");
@@ -669,6 +680,49 @@ bool settingTextOK(const String& value,size_t limit){
   for(unsigned i=0;i<value.length();i++)if((unsigned char)value[i]<32 || (unsigned char)value[i]==127)return false;
   return true;
 }
+struct ProbeCalibration { char node[17]; int16_t tenths; };
+ProbeCalibration calibration={};
+void loadCalibration(){
+  Preferences prefs;
+  if(!prefs.begin("probe-cal",true))return;
+  ProbeCalibration saved={};
+  if(prefs.getBytes("offset",&saved,sizeof(saved))==sizeof(saved) &&
+     saved.node[16]==0 && saved.tenths>=-100 && saved.tenths<=100)calibration=saved;
+  prefs.end();
+}
+float probeOffset(const String& node){
+  return node==calibration.node?calibration.tenths/10.0f:0.0f;
+}
+void handleCalibrationGet(){
+  if(!dashboardAllowed())return;
+  String node=lastNode.length()?lastNode:String(calibration.node);
+  if(node=="legacy")node="";
+  server.sendHeader("Cache-Control","no-store");
+  server.send(200,"application/json",String("{\"node\":")+jsonText(node)+
+    ",\"offset\":"+String(probeOffset(node),1)+",\"configured_probe\":"+jsonText(calibration.node)+
+    ",\"token\":"+jsonText(clearToken)+"}");
+}
+void handleCalibrationSave(){
+  if(!dashboardAllowed())return;
+  if(server.header("X-Settings-Token")!=clearToken){settingsReply(403,"Reload Settings before saving.");return;}
+  String node=server.arg("node");
+  String current=lastNode.length()?lastNode:String(calibration.node);
+  if(!node.length()||node=="legacy"||node!=current){settingsReply(409,"The active probe changed or has not reported yet. Reload Settings.");return;}
+  double offset;
+  if(!settingNumber(server.arg("offset"),offset)||offset<-10||offset>10||
+     fabs(offset*10-round(offset*10))>0.000001){
+    settingsReply(400,"Enter an offset from -10.0 to +10.0 °F in steps of 0.1.");return;
+  }
+  ProbeCalibration next={};
+  node.toCharArray(next.node,sizeof(next.node));next.tenths=(int16_t)lround(offset*10);
+  Preferences prefs;
+  if(!prefs.begin("probe-cal",false)){settingsReply(500,"Could not open calibration storage.");return;}
+  size_t written=prefs.putBytes("offset",&next,sizeof(next));prefs.end();
+  if(written!=sizeof(next)){settingsReply(500,"Could not save calibration. Previous offset remains active.");return;}
+  calibration=next;
+  settingsReply(200,"Offset saved. It applies to new readings from this probe.");
+}
+
 void handleDeploymentGet(){
   if(!dashboardAllowed())return;
   server.sendHeader("Cache-Control","no-store");server.send(200,"application/json",deploymentJSON());
@@ -759,8 +813,12 @@ const char SETTINGS_PAGE[] PROGMEM=R"settingshtml(
 <div class="pair"><div><label for="depth">Depth below surface</label><input id="depth" type="number" min="0" step="any" placeholder="Optional"></div><div><label for="unit">Unit</label><select id="unit"><option value="ft">Feet</option><option value="m">Meters</option></select></div></div><p class="hint">Leave depth blank during an air test or if unknown.</p>
 <button id="save" type="submit">Save settings</button></fieldset></form>
 <p id="feedback" role="status" aria-live="polite"></p><p id="current" class="hint"></p>
-<p class="hint">Settings are saved on this receiver and included with new readings. Previous readings keep their original details. Cloud reporting is off.</p>
+<p class="hint">Settings are saved on this receiver and included with new readings. Previous readings keep their original details.</p>
 <details><summary>Settings history</summary><p><a href="/deployment-history.csv">Download settings history</a></p><p class="hint">Saved changes are retained across restarts and clearing the current log. Wi-Fi settings are managed separately by holding USER for five seconds.</p></details>
+</section><section id="calibration"><h2>Probe calibration</h2>
+<p class="hint">Compare the probe and a trusted thermometer in the same stirred water after both settle. Enter reference minus probe temperature: if the probe reads 1.2 °F high, enter −1.2.</p>
+<form id="calibrate"><label for="offset">Temperature offset (°F)</label><input id="offset" type="number" step="0.1" min="-10" max="10" required disabled><button id="saveOffset" disabled>Save offset</button></form>
+<p id="calFeedback" role="status"></p><p class="hint">The receiver stores one probe offset. Saving for a different probe replaces the previous setting. Use 0 to disable the correction. Earlier readings are unchanged.</p>
 </section><script>
 const $=id=>document.getElementById(id);let token='',unit='ft',busy=false;
 async function load(populate=true){const r=await fetch('/deployment',{cache:'no-store'});if(!r.ok)throw Error('Could not load settings');const s=await r.json();token=s.token;
@@ -773,6 +831,21 @@ $('settings').onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;$('
 const body=new URLSearchParams();for(const key of ['location','water_body_name','water_type','depth','unit'])body.set(key,$(key).value);
 const r=await fetch('/deployment',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Settings-Token':token},body});const data=await r.json();if(!r.ok)throw Error(data.message||'Could not save settings');await load(false);$('feedback').textContent='Settings saved. New readings will use these details.';
 }catch(e){$('feedback').textContent=e.message;}finally{busy=false;$('save').disabled=false;}};
+let cal=null;
+async function loadCal(){
+ const r=await fetch('/calibration',{cache:'no-store'});if(!r.ok)throw Error('Could not load calibration.');
+ cal=await r.json();$('offset').value=cal.offset.toFixed(1);$('offset').disabled=$('saveOffset').disabled=!cal.node;
+ $('calFeedback').textContent=cal.node?'Probe: '+cal.node+(cal.configured_probe&&cal.configured_probe!==cal.node?' · Saving replaces the offset for '+cal.configured_probe:''):'Wait for an identified probe to send a reading, then reload Settings.';
+}
+$('calibrate').onsubmit=async e=>{
+ e.preventDefault();if(!cal||!cal.node)return;$('saveOffset').disabled=true;
+ try{
+  const body=new URLSearchParams({node:cal.node,offset:$('offset').value});
+  const r=await fetch('/calibration',{method:'POST',headers:{'X-Settings-Token':cal.token},body});
+  const result=await r.json();if(!r.ok)throw Error(result.message);$('calFeedback').textContent=result.message;
+ }catch(e){$('calFeedback').textContent=e.message;}finally{$('saveOffset').disabled=false;}
+};
+loadCal().catch(e=>$('calFeedback').textContent=e.message);
 load().catch(e=>{$('feedback').textContent=e.message+'. Reload to try again.';});
 </script></html>
 )settingshtml";
@@ -784,12 +857,12 @@ void handleSettingsPage(){
 // The web page. The browser downloads the CSV and draws the graphs itself.
 const char PAGE[] PROGMEM = R"rawliteral(
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Water temperature logger</title>
-<style>body{font:16px system-ui;margin:20px auto;padding:0 16px;max-width:900px;background:#eef3f6;color:#183047}section{background:white;border-radius:12px;padding:16px;margin:14px 0}button,a{margin:5px}button{padding:10px;border-radius:6px;border:1px solid #789;background:#fff}svg{width:100%;touch-action:pan-y}text{fill:#345;font-size:12px}.warn{color:#a21c16;font-weight:bold}#now{font-size:2.3rem;margin:0}.muted{color:#526778}button[aria-pressed="true"]{background:#183047;color:white;border-color:#183047}button:focus-visible,a:focus-visible{outline:3px solid #efae32;outline-offset:3px}button:active{transform:translateY(1px)}button:disabled{opacity:.55;cursor:wait}.feedback{min-height:1.5em;font-weight:600}</style>
-<h1>Water temperature logger</h1><p class="muted">Receiver revision 7 · Seeed ESP32S3 · radio diagnostics · local logging · cloud reporting off</p><p><a href="/settings">Settings: location and depth</a> · <a href="/deployment-history.csv">Save deployment history</a></p><p>To change Wi-Fi, hold the receiver USER button for 5 seconds, then join the Bluegill setup network. Logs are retained. This receiver uses the webpage and Serial Monitor; no OLED is fitted.</p><section><h2 id="now">Waiting for data</h2><p id="fresh"></p><p id="change"></p><p id="health"></p><p id="storage"></p><p id="receiverInfo" class="muted"></p><p>Deployment details are recorded per reading after Settings are saved. Cloud reporting is off.</p></section>
+<style>body{font:16px system-ui;margin:20px auto;padding:0 16px;max-width:900px;background:#eef3f6;color:#183047}section{background:white;border-radius:12px;padding:16px;margin:14px 0}button,a{margin:5px}button{padding:10px;border-radius:6px;border:1px solid #789;background:#fff}svg{width:100%;touch-action:pan-y}text{fill:#345;font-size:12px}.warn{color:#a21c16;font-weight:bold}#now{font-size:2.3rem;margin:0}.muted{color:#526778}button[aria-pressed="true"]{background:#183047;color:white;border-color:#183047}button:focus-visible,a:focus-visible{outline:3px solid #efae32;outline-offset:3px}button:active{transform:translateY(1px)}button:disabled{opacity:.55;cursor:wait}.feedback{min-height:1.5em;font-weight:600}.top{padding:10px 0}.top h1{margin:0 0 6px}.help{margin:6px 0 16px}.help summary{cursor:pointer;color:#245765}.reading{border-top:4px solid #216976}.eyebrow{font-size:.75rem;letter-spacing:.08em;font-weight:700;color:#526778;margin-top:0}button{cursor:pointer;min-height:42px}section{box-shadow:0 1px 2px #18304712}</style>
+<header class="top"><h1>Water temperature logger</h1><p class="muted">Receiver revision 8 · Seeed ESP32S3 · Local logging</p><p><a href="/settings">Settings</a> · <a href="#logs">Logs and reporting</a></p></header><details class="help"><summary>Change Wi-Fi or use the receiver button</summary><p>To change Wi-Fi, hold the receiver USER button for 5 seconds, then join the Bluegill setup network. Logs are retained. This receiver uses the webpage and Serial Monitor; no OLED is fitted.</p></details><section class="reading"><p class="eyebrow">LATEST WATER TEMPERATURE</p><h2 id="now">Waiting for data</h2><p id="fresh"></p><p id="change"></p><p id="health"></p><p id="storage"></p><p id="receiverInfo" class="muted"></p><p>Deployment details are recorded per reading after Settings are saved.</p></section>
 <section><button data-h="24" aria-pressed="true">24 hours</button><button data-h="168" aria-pressed="false">7 days</button><button data-h="0" aria-pressed="false">All current log</button><p id="rangeFeedback" class="feedback" role="status" aria-live="polite">Showing last 24 hours</p><p id="stats"></p><h2>Temperature (°F)</h2><svg id="temp" viewBox="0 0 700 270" role="img" aria-label="Temperature history"></svg><p id="detail">Tap a chart to inspect a reading.</p></section>
 <section><h2>Field battery voltage (V)</h2><svg id="batt" viewBox="0 0 700 270" role="img" aria-label="Battery voltage history"></svg><p class="muted">Voltage is not a calibrated battery percentage.</p></section>
 <section><h2>Radio link diagnostics</h2><p id="radioLatest">Waiting for a packet received this receiver boot.</p><p id="radioMargin" class="muted"></p><p id="reportGaps"></p><p id="reportTiming"></p><p class="muted">Gap statistics use the selected period in the current log. Sequence gaps are counted separately for each transmitter and boot ID, between its first and last observed sequence only. Receiver outages and failed saves can also cause gaps. No missing count is inferred across transmitter resets or beyond the latest report. Distance cannot be calculated reliably from RSSI.</p><svg id="rssi" viewBox="0 0 700 270" role="img" aria-label="Received signal strength in dBm"></svg><p>RSSI describes received packets; it does not establish packet delivery rate.</p></section>
-<section><h2>Log management</h2><button id="save">Save log</button><button id="clear">Clear current log…</button><p><a href="/archives">Browse / save archives</a> · <a href="/previous.csv" download="pre_settings_log.csv">Save pre-settings log</a> · <a href="/legacy.csv" download="legacy.csv">Save original-format log</a></p><p class="muted">Save a copy before clearing. Clearing affects the current log on the active storage only. An archive or a log on another storage device remains intact.</p><p id="actionFeedback" class="feedback" role="status" aria-live="polite"></p><p id="notice"></p></section>
+<section id="logs"><h2>Logs and reporting</h2><button id="save">Download CSV</button><p><a href="https://thesouthernbluegill.com/observations/" target="_blank" rel="noopener noreferrer">Share a water-temperature observation with The Southern Bluegill</a></p><p class="muted">Download the CSV for your records and use the observation form to submit a field reading manually. The gateway does not send logs automatically.</p><button id="clear">Clear current log…</button><p><a href="/archives">Browse / save archives</a> · <a href="/pre-calibration.csv">Pre-calibration backup</a> · <a href="/previous.csv" download="pre_settings_log.csv">Save pre-settings log</a> · <a href="/legacy.csv" download="legacy.csv">Save original-format log</a></p><p class="muted">Save a copy before clearing. Clearing affects the current log on the active storage only. An archive or a log on another storage device remains intact.</p><p id="actionFeedback" class="feedback" role="status" aria-live="polite"></p><p id="notice"></p></section>
 <script>
 let rows=[],hours=24,busy=false,status=null;
 const $=id=>document.getElementById(id),finite=Number.isFinite;
@@ -853,7 +926,7 @@ $('save').onclick=async()=>{const b=$('save');b.disabled=true;b.textContent='Pre
  const r=await fetch('/log.csv',{cache:'no-store'});if(!r.ok)throw Error('Download failed: HTTP '+r.status);
  const url=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=url;a.download='water_temp_log.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
  $('actionFeedback').textContent='CSV download requested. Check your browser downloads before clearing the log.';
-}catch(e){$('actionFeedback').textContent=e.message;}finally{b.disabled=false;b.textContent='Save log';}};
+}catch(e){$('actionFeedback').textContent=e.message;}finally{b.disabled=false;b.textContent='Download CSV';}};
 $('clear').onclick=async()=>{
  if(!confirm('Erase the current log on the active storage? Save your CSV first. This cannot be undone.')){$('actionFeedback').textContent='Clear cancelled. Log retained.';return;}
  const button=$('clear');button.disabled=true;button.textContent='Clearing…';$('actionFeedback').textContent='Clearing current log…';
@@ -872,7 +945,7 @@ void handleRoot() {
 }
 
 void handleCsv() {
-  File f = logFS().open("/log-v4.csv", FILE_READ);
+  File f = logFS().open("/log-v5.csv", FILE_READ);
   if (!f) { server.send(404, "text/plain", "No log yet"); return; }
   server.sendHeader("Content-Disposition", "attachment; filename=water_temp_log.csv");
   server.sendHeader("Cache-Control","no-store");
@@ -937,7 +1010,7 @@ bool startRadio() {
 void setup() {
   Serial.begin(115200);
   delay(300); // USB CDC startup; no indefinite wait for a connected computer.
-  Serial.println("Bluegill receiver revision 7 / XIAO ESP32S3 / Wi-Fi setup diagnostic");
+  Serial.println("Bluegill receiver revision 8 / XIAO ESP32S3 / Wi-Fi setup diagnostic");
   // Storage: internal flash, plus the SD card if one is connected
   flashOk=mountFlashSafely(); // auto-initialize ONLY a completely erased partition
   storageError=!flashOk;
@@ -988,7 +1061,7 @@ void setup() {
                 storageError ? "FAILED" : "OK");
   pinMode(USER_BUTTON,INPUT_PULLUP);
   clearToken=String(esp_random(),HEX)+String(esp_random(),HEX);
-  receiverSession=esp_random();loadDeployment();
+  receiverSession=esp_random();loadDeployment();loadCalibration();
   // Saved settings are independent of the log filesystem; no startup wait.
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
@@ -1000,9 +1073,18 @@ void setup() {
 
   server.on("/",HTTP_GET,[](){if(onSetupNetwork())handleWifiPage();else handleRoot();});
   server.on("/settings",HTTP_GET,handleSettingsPage);
+  server.on("/calibration",HTTP_GET,handleCalibrationGet);
+  server.on("/calibration",HTTP_POST,handleCalibrationSave);
   server.on("/deployment",HTTP_GET,handleDeploymentGet);
   server.on("/deployment",HTTP_POST,handleDeploymentSave);
   server.on("/deployment-history.csv",HTTP_GET,handleDeploymentHistory);
+  server.on("/pre-calibration.csv",HTTP_GET,[](){
+    if(!dashboardAllowed())return;
+    File f=logFS().open("/log-v4.csv",FILE_READ);
+    if(!f){server.send(404,"text/plain","No pre-calibration log");return;}
+    server.sendHeader("Content-Disposition","attachment; filename=pre_calibration.csv");
+    server.streamFile(f,"text/csv");f.close();
+  });
   server.on("/previous.csv",HTTP_GET,[](){
     if(!dashboardAllowed())return;
     File f=logFS().open(logFS().exists("/log-v3.csv")?"/log-v3.csv":"/log-v2.csv",FILE_READ);
