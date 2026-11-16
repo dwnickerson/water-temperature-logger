@@ -21,7 +21,7 @@ The gateway is a custom LoRa-to-Wi-Fi gateway, not a LoRaWAN gateway. The `recei
 | Weather | Live API checks resolved Tupelo, MS and ZIP 38801 and returned weather/time offset | Device TLS/heap/offline behavior; appropriate service arrangement for rollout |
 | Solar experiment | New light’s battery rose from 3.87 V at 12:38 to 3.96 V at 14:16 on November 5 after sunlight exposure | Charging current, energy balance with transmitter attached, cloudy-day performance and seasonal runtime |
 | Radio authorization | Seeed confirmed the 907.8 MHz fixed-channel profile falls within the Wio-SX1262 DTS module grant | Verify the installed antenna assembly, enclosure labeling and finished-host emissions |
-| Cloud reporting | Planned; absent/disabled in current firmware | Authenticated ingestion, buffering/recovery, validation and model eligibility |
+| Private online reporting | A field gateway running revision 18 paired in production and used catch-up to upload 90 locally saved readings on November 16, 2026. An earlier Preview test confirmed one queued reading uploaded after internet access returned. | Longer-term reliability and measurement review for model use |
 
 The solar voltage change is consistent with charging, but it is not a measurement of mAh added or proof of sustainable operation. USB-powered voltage reports are not battery-discharge tests.
 
@@ -39,7 +39,7 @@ Started November 12, 2026, with a fully charged 3,000 mAh battery and no USB or 
 4. Measure battery-only transmitter current and track morning voltage and air temperature during the battery-only trial before comparing it with solar operation.
 5. Test weather protection, installation, range, restarts, router outages and storage limits.
 6. **Next experiment after the current validation: remote store-and-forward.** Log on the transmitter’s onboard flash with no permanent gateway; collect missing records during a site visit using verified batches and safe acknowledgments. Start with existing hardware and test timekeeping, power loss, interrupted downloads and confirmed-record reclaim. See the [experiment plan](store-and-forward.md). This is not implemented yet.
-7. Add private, authenticated website reporting in stages. Keep test readings separate from accepted field observations.
+7. Extend the private production pilot and review the quality of shared field measurements before considering them for model validation.
 8. Consider model use only after measurement quality, metadata, continuity and validation support it.
 
 There is no measured “runs forever” solar result, guaranteed field battery life, finished national fleet management, or completed FCC compliance claim.
