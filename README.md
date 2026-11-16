@@ -4,7 +4,7 @@
 
 A remote temperature probe, a low-power LoRa transmitter, and a Wi-Fi gateway with local logging and a browser dashboard. A project by **The Southern Bluegill**.
 
-I’m building this to collect real water temperatures for long-term observations. The Seeed transmitter and gateway exchanged readings on the bench, and the transmitter went into the water on November 15 for an initial field trial. Solar power is being tested; automatic reporting to the website and model integration are planned.
+I’m building this to collect real water temperatures for long-term observations. The Seeed transmitter and gateway exchanged readings on the bench, and the transmitter went into the water on November 15 for an initial field trial. Solar power is being tested. Automatic website reporting is running in an invitation-only production pilot.
 
 **Current stage: initial field trial.** Seeed confirmed the fixed-channel LoRa profile is within the Wio-SX1262 DTS module grant. The antenna assembly, enclosure labeling and finished-host emissions checks are tracked in [radio status](docs/radio-status.md).
 
@@ -20,9 +20,15 @@ flowchart LR
     G -->|Home Wi-Fi| B[Browser dashboard]
 ```
 
-The **transmitter** measures the probe temperature and battery voltage, then sends a report about every 15 minutes. The **gateway** receives reports, saves them locally, and serves the dashboard over home Wi-Fi. It does not currently upload readings to a cloud service.
+The **transmitter** measures the probe temperature and battery voltage, then sends a report about every 15 minutes. The **gateway** receives reports, saves them locally, and serves the dashboard over home Wi-Fi.
 
 This is a custom point-to-point LoRa system, **not LoRaWAN and not Meshtastic**. “Gateway” describes the LoRa-to-Wi-Fi role; the Arduino filenames retain `receiver` for continuity.
+
+## Private online reporting pilot
+
+On November 16, 2026, a field gateway running revision 18 paired with The Southern Bluegill and used the production service to upload a catch-up batch of 90 saved water-temperature readings. Owners in the pilot get a private dashboard with temperature history, time ranges, summary statistics and CSV export. Catch-up checks for readings missing from that gateway’s online history before the owner approves the upload.
+
+The sketches listed below provide local logging and dashboards. Revision 18 reporting firmware is distributed through the pilot. See the [project journal](https://thesouthernbluegill.com/observations/projects/water-temperature-logger/) for setup and pilot details.
 
 ## Choose your sketch
 
@@ -64,7 +70,7 @@ For the OLED, see [display behavior and weather](docs/display.md). For the solar
 
 The first attempt will use the existing boards and onboard flash, not require an SD card. Timekeeping, power use, interrupted-transfer recovery and safe acknowledgments still need design and testing. **This is planned, not in the current sketches.**
 
-Read the [store-and-forward experiment plan](docs/store-and-forward.md). Automatic website reporting follows as a separate later stage.
+Read the [store-and-forward experiment plan](docs/store-and-forward.md). 
 
 The [project status](docs/status.md#outdoor-battery-only-test) records the November 12 outdoor battery-only test baseline.
 
@@ -72,7 +78,7 @@ The [project status](docs/status.md#outdoor-battery-only-test) records the Novem
 
 Field calibration, installed range, all-weather reliability, battery-only current/runtime, and solar energy balance are not yet established. The transmitter has no stored backlog, acknowledgments, or resend mechanism. There is one deployment configuration per gateway, not a complete multi-probe deployment manager.
 
-Cloud reporting, database ingestion, and model integration are planned and disabled/not implemented in these sketches. The public weather endpoints in the display build are for non-commercial bench use; a suitable service arrangement is needed before commercial rollout.
+Forecast model integration is still planned. The public weather endpoints in the display build are for non-commercial bench use; a suitable service arrangement is needed before commercial rollout.
 
 See [project status](docs/status.md), [data format and storage](docs/data.md), and [changelog](CHANGELOG.md).
 
