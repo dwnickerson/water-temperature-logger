@@ -4,9 +4,9 @@
 
 A remote temperature probe, a low-power LoRa transmitter, and a Wi-Fi gateway with local logging and a browser dashboard. A project by **The Southern Bluegill**.
 
-I’m building this to collect real water temperatures for long-term observations. The Seeed transmitter and gateway are exchanging readings on the bench. Solar power is being tested; automatic reporting to the website and model integration are planned.
+I’m building this to collect real water temperatures for long-term observations. The Seeed transmitter and gateway exchanged readings on the bench, and the transmitter went into the water on November 15 for an initial field trial. Solar power is being tested; automatic reporting to the website and model integration are planned.
 
-**Current stage: working bench prototype, not a field-validated product.** Radio certification/integration review remains open. The radio settings in these sketches are not a declaration of FCC compliance. See [radio status](docs/radio-status.md) before operating or adapting the radio build.
+**Current stage: initial field trial.** Seeed confirmed the fixed-channel LoRa profile is within the Wio-SX1262 DTS module grant. The antenna assembly, enclosure labeling and finished-host emissions checks are tracked in [radio status](docs/radio-status.md).
 
 [Project journal](https://thesouthernbluegill.com/observations/projects/water-temperature-logger/) · [Get started](docs/getting-started.md) · [Wiring](docs/hardware.md) · [Status and next steps](docs/status.md)
 
