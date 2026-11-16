@@ -24,7 +24,7 @@ Seeed support confirmed that the fixed-channel profile above falls within the DT
 
 ## Assembled logger checks
 
-- **Deployed antenna.** The field transmitter uses the small flexible antenna supplied with the Seeed unit, mounted inside the housing. Confirm the antenna part number and the applicable DTS grant installation conditions for this assembly. Seeed separately identified SKU **318020691 / RFELA-3/58X**, a 5.8 dBi fiberglass kit with an N-type male connector and a 1 m CFD-200 cable.
+- **Deployed antenna.** The field transmitter uses the small flexible antenna supplied with the Seeed unit, mounted inside the housing. The [FCC DTS test report (BL-SZ2480665-602)](https://fcc.report/FCC-ID/z4twiosx1262/7738781.pdf) lists a 2.36 dBi flexible printed-circuit (FPC) antenna. The supplied antenna’s exact part number and match to the filing are unverified. Seeed separately identified SKU **318020691 / RFELA-3/58X**, a 5.8 dBi fiberglass kit with an N-type male connector and a 1 m CFD-200 cable.
 - **Label and installation.** If the module label is hidden, label the exterior **Contains FCC ID: Z4T-WIO-SX1262**. Follow the grant conditions, including at least 20 cm separation from people and its antenna co-location and simultaneous-operation restrictions.
 - **Host emissions.** Seeed advised verifying the finished host as a digital device under Part 15B and recommended checking radiated spurious emissions with the actual enclosure and antenna installed.
 
