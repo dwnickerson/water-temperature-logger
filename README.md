@@ -28,7 +28,9 @@ This is a custom point-to-point LoRa system, **not LoRaWAN and not Meshtastic**.
 
 On November 16, 2026, a field gateway running revision 18 paired with The Southern Bluegill and used the production service to upload a catch-up batch of 90 saved water-temperature readings. Owners in the pilot get a private dashboard with temperature history, time ranges, summary statistics and CSV export. Catch-up checks for readings missing from that gateway’s online history before the owner approves the upload.
 
-The sketches listed below provide local logging and dashboards. Revision 18 reporting firmware is distributed through the pilot. See the [project journal](https://thesouthernbluegill.com/observations/projects/water-temperature-logger/) for setup and pilot details.
+Receiver #2 is now running revision 20 in the invitation-only production pilot. Field testing confirmed that the gateway uploaded the single missing reading, showed its probe depth on the private dashboard, and resumed reporting after Wi-Fi connectivity returned.
+
+The sketches listed below provide local logging and dashboards. Revision 20 reporting firmware is distributed through the pilot. See the [project journal](https://thesouthernbluegill.com/observations/projects/water-temperature-logger/) for setup and pilot details.
 
 ## Choose your sketch
 
