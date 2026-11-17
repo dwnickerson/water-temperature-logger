@@ -6,8 +6,8 @@
 
 On GitHub, choose **Code → Download ZIP**, then extract it. Choose one gateway folder:
 
-- **With SH1106:** `firmware/gateway/display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino`
-- **Without OLED:** `firmware/gateway/no-display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino`
+- **Rev 20 with or without an SH1106:** [receiver_logger_pairing.ino](../firmware/gateway/receiver_logger_pairing/receiver_logger_pairing.ino)
+- **Legacy local-only gateways:** [Rev 9 with SH1106](../firmware/gateway/display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino) or [Rev 7 without OLED](../firmware/gateway/no-display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino).
 
 The transmitter is `firmware/transmitter/xmiter_nrf52840/xmiter_nrf52840.ino`.
 
@@ -38,10 +38,11 @@ The firmware uses **LittleFS** in that filesystem partition. Do not choose Maxim
 
 | Gateway variant | Install in Library Manager |
 |---|---|
-| No display, revision 7 | **RadioLib 7.1.2** |
-| SH1106 display, revision 9 | **RadioLib 7.1.2**, **U8g2 2.36.17**, **ArduinoJson 7.4.2** |
+| Rev 20, with or without SH1106 | **RadioLib 7.1.2**, **U8g2 2.36.17**, **ArduinoJson 7.4.2** |
+| Legacy no display, revision 7 | **RadioLib 7.1.2** |
+| Legacy SH1106 display, revision 9 | **RadioLib 7.1.2**, **U8g2 2.36.17**, **ArduinoJson 7.4.2** |
 
-WiFi, FS, LittleFS, Preferences, WebServer, SD, DNSServer, HTTPClient and WiFiClientSecure are supplied by the ESP32 core. The no-display version does not need U8g2 or ArduinoJson.
+WiFi, FS, LittleFS, Preferences, WebServer, SD, DNSServer, HTTPClient and WiFiClientSecure are supplied by the ESP32 core. Only the legacy Rev 7 sketch can be compiled without U8g2 and ArduinoJson.
 
 ### Transmitter
 
