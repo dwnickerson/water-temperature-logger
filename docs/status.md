@@ -16,12 +16,12 @@ The gateway is a custom LoRa-to-Wi-Fi gateway, not a LoRaWAN gateway. The `recei
 | Gateway baseline | Wi-Fi setup, reconnection after power loss, dashboard and CSV confirmed during bench use | Long-duration retention/outage/low-storage tests on the deployed build |
 | Transmitter identity | Factory-derived 16-character ID appears in reports | Fleet provisioning/ownership workflow |
 | External flash sleep | Tested board reported JEDEC `0x856015`; sleep command sent and QSPI released | Actual battery-only idle current and runtime |
-| No-display gateway | Revision 7 includes the Wi-Fi setup change | Hardware test of revision 7 still pending |
-| Display gateway | Revision 9 includes the Wi-Fi setup change; the display diagnostic build showed a reachable dashboard and a saved LoRa reading | Confirm hotspot recovery and verify display, weather and reception on revision 9 |
+| Gateway Rev 20 | Field gateway uploaded a single missing reading with probe depth and resumed online reporting after Wi-Fi returned | No-display hardware validation and longer-duration retention, outage and storage testing |
+| Transmitter Rev 3 | Build and simulated probe reconnect, radio error and RNG timeout checks passed | Bench and field validation on hardware |
 | Weather | Live API checks resolved Tupelo, MS and ZIP 38801 and returned weather/time offset | Device TLS/heap/offline behavior; appropriate service arrangement for rollout |
 | Solar experiment | New light’s battery rose from 3.87 V at 12:38 to 3.96 V at 14:16 on November 5 after sunlight exposure | Charging current, energy balance with transmitter attached, cloudy-day performance and seasonal runtime |
 | Radio authorization | Seeed confirmed the 907.8 MHz fixed-channel profile falls within the Wio-SX1262 DTS module grant | Verify the installed antenna assembly, enclosure labeling and finished-host emissions |
-| Private online reporting | A field gateway running revision 18 paired in production and used catch-up to upload 90 locally saved readings on November 16, 2026. An earlier Preview test confirmed one queued reading uploaded after internet access returned. | Longer-term reliability and measurement review for model use |
+| Private online reporting | Production pairing and catch-up exercised on a field gateway | Longer-term reliability and measurement review for model use |
 
 The solar voltage change is consistent with charging, but it is not a measurement of mAh added or proof of sustainable operation. USB-powered voltage reports are not battery-discharge tests.
 
@@ -50,6 +50,7 @@ There is no measured “runs forever” solar result, guaranteed field battery l
 
 - Display gateway revision 8: the exact sketch delivered in `Bluegill-receiver-revision-8-SH1106.zip` on November 5, 2026; no functional changes made for this repository import.
 - No-display gateway revision 6: imported from the previous project download dated November 3, 2026. Original Git blob: `c85ac014cb597523d591538e07ed9520f67e1663`.
+- Transmitter Rev 3: built November 16, 2026. Retains the Rev 2 reporting interval, packet format and external flash sleep handling.
 - Transmitter flash sleep fix revision 2: imported from that same download set. Original Git blob: `f60c907d039d2ebf17db9b884beae6233e155252`.
 
 The previous journal/downloads were hosted with [The Southern Bluegill project page](https://thesouthernbluegill.com/observations/projects/water-temperature-logger/). This dedicated repository now groups the current Seeed firmware and documentation.

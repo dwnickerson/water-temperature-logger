@@ -4,14 +4,12 @@
 
 ## 1. Download the project
 
-On GitHub, choose **Code → Download ZIP**, then extract it. Choose one gateway folder:
+On GitHub, choose **Code → Download ZIP**, then extract it.
 
-- **Rev 20 with or without an SH1106:** [receiver_logger_pairing.ino](../firmware/gateway/receiver_logger_pairing/receiver_logger_pairing.ino)
-- **Legacy local-only gateways:** [Rev 9 with SH1106](../firmware/gateway/display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino) or [Rev 7 without OLED](../firmware/gateway/no-display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino).
+- **Gateway Rev 20, with or without an SH1106:** [receiver_logger_pairing.ino](../firmware/gateway/receiver_logger_pairing/receiver_logger_pairing.ino)
+- **Transmitter Rev 3:** [xmiter_nrf52840.ino](../firmware/transmitter/xmiter_nrf52840/xmiter_nrf52840.ino)
 
-The transmitter is `firmware/transmitter/xmiter_nrf52840/xmiter_nrf52840.ino`.
-
-Open each `.ino` directly in Arduino IDE. Keep each file inside its matching folder. Do not open both gateway variants as tabs in the same sketch. If a download adds `(1)` to a filename, restore the original folder/file names.
+Open each sketch separately in Arduino IDE and keep the matching folder and file names.
 
 ## 2. Install the board packages and libraries
 
@@ -22,7 +20,7 @@ https://espressif.github.io/arduino-esp32/package_esp32_index.json
 https://files.seeedstudio.com/arduino/package_seeeduino_boards_index.json
 ```
 
-### Gateway — both variants
+### Gateway Rev 20
 
 | Setting | Selection |
 |---|---|
@@ -39,10 +37,8 @@ The firmware uses **LittleFS** in that filesystem partition. Do not choose Maxim
 | Gateway variant | Install in Library Manager |
 |---|---|
 | Rev 20, with or without SH1106 | **RadioLib 7.1.2**, **U8g2 2.36.17**, **ArduinoJson 7.4.2** |
-| Legacy no display, revision 7 | **RadioLib 7.1.2** |
-| Legacy SH1106 display, revision 9 | **RadioLib 7.1.2**, **U8g2 2.36.17**, **ArduinoJson 7.4.2** |
 
-WiFi, FS, LittleFS, Preferences, WebServer, SD, DNSServer, HTTPClient and WiFiClientSecure are supplied by the ESP32 core. Only the legacy Rev 7 sketch can be compiled without U8g2 and ArduinoJson.
+WiFi, FS, LittleFS, Preferences, WebServer, SD, DNSServer, HTTPClient and WiFiClientSecure are supplied by the ESP32 core.
 
 ### Transmitter
 

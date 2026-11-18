@@ -6,7 +6,7 @@ Copy this checklist into a test record or GitHub issue. Record the date, firmwar
 
 ## First boot and local logging
 
-- [ ] Correct gateway variant and board selected; expected Serial banner appears.
+- [ ] Gateway Rev 20 and the correct board selected; expected Serial banner appears.
 - [ ] Log initialization succeeds; no unexpected format/erase occurred.
 - [ ] Wi-Fi setup works from a phone and closes after success or Close setup.
 - [ ] Home Wi-Fi reconnects after a gateway-only restart; old readings/settings remain.
@@ -17,7 +17,7 @@ Copy this checklist into a test record or GitHub issue. Record the date, firmwar
 - [ ] New deployment details appear in subsequent CSV rows; earlier rows remain unchanged.
 - [ ] Clear current log requires confirmation; exported backups, archives and settings history are handled as documented.
 
-## Display build only
+## Gateway with SH1106 only
 
 - [ ] Logo appears alone and centered; all text is centered/readable.
 - [ ] Probe, clock/weather, address and logo cycle; screen stays on beyond one minute.

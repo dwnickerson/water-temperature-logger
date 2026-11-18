@@ -1,4 +1,5 @@
-// Flash sleep fix revision 2 — 2026-11-02
+// Transmitter revision 3 — 2026-11-16
+// Retains the Rev 2 external flash sleep handling.
 // Southern Bluegill / XIAO nRF52840 + THROUGH-HOLE Wio-SX1262 kit (102010710).
 // See README.md for pinned core/libraries, wiring and verification limits.
 // Enabled point-to-point LoRa. These settings are NOT a compliance certification.
@@ -30,7 +31,7 @@ Adafruit_FlashTransport_QSPI flashTransport;
 // The flash is unused; only bounded low-level control commands are needed.
 char nodeID[17]; // full 64-bit factory identifier, 16 hex digits; unchanged packet schema
 uint32_t bootID=0, sequence=0, nextReport=0;
-bool radioReady=false, identityReady=false;
+bool radioReady=false, identityReady=false, bootIDReady=false;
 
 void sleepExternalFlash() {
   // Adafruit SPIFlash 5.1.1's default high-level device list omits P25Q16H.
@@ -69,17 +70,26 @@ void sleepExternalFlash() {
   // A successful control transfer is not a measurement of sleep current.
 }
 
-uint32_t randomBootID() {
+bool generateBootID() {
+  constexpr uint32_t RNG_TIMEOUT_MS = 100;
+  const uint32_t started=millis();
   uint32_t value=0;
   NRF_RNG->EVENTS_VALRDY=0;
   NRF_RNG->TASKS_START=1;
   for(unsigned i=0;i<4;i++) {
-    while(!NRF_RNG->EVENTS_VALRDY) yield();
+    while(!NRF_RNG->EVENTS_VALRDY) {
+      if(millis()-started>=RNG_TIMEOUT_MS) {
+        NRF_RNG->TASKS_STOP=1;
+        return false;
+      }
+      delay(1);
+    }
     value=(value<<8) | (NRF_RNG->VALUE & 0xFF);
     NRF_RNG->EVENTS_VALRDY=0;
   }
   NRF_RNG->TASKS_STOP=1;
-  return value;
+  bootID=value;
+  return true;
 }
 
 float batteryVolts() {
@@ -93,6 +103,13 @@ float batteryVolts() {
   return (sum/16.0f) * (3.0f/4095.0f) * BATTERY_DIVIDER * BATTERY_CALIBRATION;
 }
 
+bool sleepRadio() {
+  const int16_t state=radio.sleep();
+  if(state==RADIOLIB_ERR_NONE)return true;
+  Serial.print("Radio sleep failed: ");Serial.println(state);
+  return false;
+}
+
 bool startRadio() {
   // RX off in standby/transmit/sleep; SX1262 DIO2 drives the transmit switch.
   pinMode(D5,OUTPUT);digitalWrite(D5,LOW);
@@ -101,18 +118,42 @@ bool startRadio() {
       RADIOLIB_SX126X_SYNC_WORD_PRIVATE,RADIO_DBM,8,1.8);
   if(state==RADIOLIB_ERR_NONE)state=radio.setDio2AsRfSwitch(true);
   if(state==RADIOLIB_ERR_NONE)state=radio.setCRC(true);
-  if(state!=RADIOLIB_ERR_NONE){Serial.print("Radio initialization failed: ");Serial.println(state);return false;}
+  if(state!=RADIOLIB_ERR_NONE) {
+    Serial.print("Radio initialization failed: ");Serial.println(state);
+    sleepRadio(); // Best effort if initialization left the radio awake.
+    return false;
+  }
   return true;
+}
+
+bool validTemperature(float c) {
+  return isfinite(c) && c>=-55.0f && c<=125.0f;
+}
+
+float readProbe() {
+  sensors.requestTemperatures();
+  return sensors.getTempCByIndex(0);
+}
+
+void detectProbe() {
+  sensors.begin();
+  sensors.setWaitForConversion(true);
+  sensors.setResolution(12);
 }
 
 void reportReading() {
   if(!identityReady){Serial.println("Factory identifier invalid; report skipped.");return;}
-  sensors.requestTemperatures(); // waits for a real conversion; no power-up default reading
-  float c=sensors.getTempCByIndex(0);
-  if(c==DEVICE_DISCONNECTED_C || !isfinite(c)) {
-    delay(100); sensors.requestTemperatures();c=sensors.getTempCByIndex(0);
+  if(!bootIDReady) {
+    bootIDReady=generateBootID();
+    if(!bootIDReady){Serial.println("Boot ID RNG timed out; retry next report.");return;}
   }
-  bool valid=isfinite(c) && c!=DEVICE_DISCONNECTED_C && c>=-55.0f && c<=125.0f;
+  float c=readProbe();
+  if(!validTemperature(c)) {
+    delay(100);
+    detectProbe(); // DallasTemperature caches the device count until begin() runs again.
+    c=readProbe();
+  }
+  bool valid=validTemperature(c);
   float v=batteryVolts();
   char temperature[16], voltage[16], message[112];
   if(valid)snprintf(temperature,sizeof(temperature),"%.1f",DallasTemperature::toFahrenheit(c));
@@ -127,9 +168,8 @@ void reportReading() {
   if(radioReady) {
     int16_t result=radio.transmit(message);
     Serial.print("TX result ");Serial.print(result);Serial.print(": ");Serial.println(message);
-    int16_t sleepResult=radio.sleep();
-    if(sleepResult!=RADIOLIB_ERR_NONE){Serial.print("Radio sleep failed: ");Serial.println(sleepResult);radioReady=false;}
-    if(result!=RADIOLIB_ERR_NONE)radioReady=false;
+    const bool slept=sleepRadio();
+    radioReady=slept && result==RADIOLIB_ERR_NONE;
   } else {Serial.print("Not sent: ");Serial.println(message);}
   // Leave the 1-Wire bus pulled HIGH and DS18B20 in powered standby.
   oneWire.depower();
@@ -148,14 +188,13 @@ void setup() {
       (unsigned long)NRF_FICR->DEVICEID[1],(unsigned long)NRF_FICR->DEVICEID[0]);
   identityReady=!((NRF_FICR->DEVICEID[0]==0 && NRF_FICR->DEVICEID[1]==0) ||
     (NRF_FICR->DEVICEID[0]==UINT32_MAX && NRF_FICR->DEVICEID[1]==UINT32_MAX));
-  bootID=randomBootID();
+  Serial.println("Bluegill transmitter revision 3 / XIAO nRF52840");
   Serial.print("Transmitter ID: ");Serial.println(nodeID);
   Serial.println("LoRa ENABLED: 907.8 MHz / 500 kHz / SF9 / CR4/7 / +10 dBm");
   sleepExternalFlash();
-  sensors.begin();sensors.setWaitForConversion(true);sensors.setResolution(12);
+  detectProbe();
   Serial.print("DS18B20 devices found: ");Serial.println(sensors.getDeviceCount());
   if(sensors.getDeviceCount()!=1)Serial.println("Use one probe per transmitter for this revision.");
-  radioReady=startRadio();
   nextReport=millis();
 }
 

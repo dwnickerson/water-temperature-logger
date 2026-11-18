@@ -26,7 +26,7 @@ This is a custom point-to-point LoRa system, **not LoRaWAN and not Meshtastic**.
 
 ## Private online reporting pilot
 
-On November 16, 2026, a field gateway running revision 18 paired with The Southern Bluegill and used the production service to upload a catch-up batch of 90 saved water-temperature readings. Owners in the pilot get a private dashboard with temperature history, time ranges, summary statistics and CSV export. Catch-up checks for readings missing from that gateway’s online history before the owner approves the upload.
+Owners in the pilot get a private dashboard with temperature history, time ranges, summary statistics and CSV export. Catch-up checks for readings missing from that gateway’s online history before the owner approves the upload.
 
 The field gateway is running revision 20 in the invitation-only production pilot. Field testing confirmed that the gateway uploaded the single missing reading, showed its probe depth on the private dashboard, and resumed reporting after Wi-Fi connectivity returned.
 
@@ -39,13 +39,11 @@ Use **one gateway sketch**, plus the transmitter sketch. Open the `.ino` from it
 | Role / version | Hardware | Source |
 |---|---|---|
 | Gateway, **revision 20** | XIAO ESP32S3 + matching B2B Wio-SX1262, with or without an SH1106 OLED | [Revision 20 sketch](firmware/gateway/receiver_logger_pairing/receiver_logger_pairing.ino) |
-| Legacy local-only gateway **with display**, revision 9 | XIAO ESP32S3 + matching B2B Wio-SX1262 + optional 1.3-inch SH1106 | [Display sketch](firmware/gateway/display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino) |
-| Legacy local-only gateway **without display**, revision 7 | XIAO ESP32S3 + matching B2B Wio-SX1262 | [No-display sketch](firmware/gateway/no-display/receiver_xiao_esp32s3/receiver_xiao_esp32s3.ino) |
-| Transmitter, flash sleep fix revision 2 | XIAO nRF52840 + through-hole Wio-SX1262 + one DS18B20 | [Transmitter sketch](firmware/transmitter/xmiter_nrf52840/xmiter_nrf52840.ino) |
+| Transmitter, **revision 3** | XIAO nRF52840 + through-hole Wio-SX1262 + one DS18B20 | [Transmitter sketch](firmware/transmitter/xmiter_nrf52840/xmiter_nrf52840.ino) |
 
-Revision 20 detects the optional SH1106 at startup. With no OLED attached, it continues logging and skips the display and its weather worker. The Rev 20 sketch uses RadioLib 7.1.2, U8g2 2.36.17, and ArduinoJson 7.4.2 for either hardware setup. Before updating an existing gateway, export its CSV, keep its partition layout, and disable **Erase All Flash Before Sketch Upload**. Rev 20 has been field-tested on Receiver #2. No-display hardware validation is pending.
+Revision 20 detects the optional SH1106 at startup. With no OLED attached, it continues logging and skips the display and its weather worker. The Rev 20 sketch uses RadioLib 7.1.2, U8g2 2.36.17, and ArduinoJson 7.4.2 for either hardware setup. Before updating an existing gateway, export its CSV, keep its partition layout, and disable **Erase All Flash Before Sketch Upload**. Rev 20 has been field-tested on the reporting gateway. No-display hardware validation is pending.
 
-The legacy gateway builds provide Wi-Fi setup, local logging, CSV export, graphs, deployment settings, and radio diagnostics. The display build adds the centered logo, continuously cycling OLED screens, and location-based time/weather. The no-display build has no OLED or weather dependencies. See [setup instructions](docs/getting-started.md) for exact board packages and library versions.
+Rev 3 improves recovery from an invalid probe reading, radio errors and a boot-ID generation timeout. It retains the existing packet format and reporting cadence. Build and simulated checks passed. Hardware validation is pending.
 
 ## Current features
 

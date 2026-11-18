@@ -1,5 +1,10 @@
 # Changelog
 
+## Current firmware
+
+- **Gateway Rev 20:** Local logging with optional SH1106 and invitation-only website reporting. Adds interrupted-write recovery and upload retries. The reporting gateway has been field-tested. Hardware testing without an OLED remains open.
+- **Transmitter Rev 3:** Rediscovers a probe after an invalid reading, attempts radio sleep after initialization/configuration errors and retries boot-ID generation after an RNG timeout. The packet format and cadence match Rev 2. Build and simulated checks passed. Hardware testing remains open.
+
 ## 2026-11-12 — Gateway downloads synced and outdoor test started
 
 - Imported the published November 11 Wi-Fi setup builds: display revision 9 and no-display revision 7. Both pause saved-network reconnects during setup and print hotspot diagnostics. No-display hardware validation is pending; the underlying cause of the hotspot issue remains unconfirmed.

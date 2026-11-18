@@ -2,7 +2,7 @@
 
 [Back to README](../README.md) · [Wiring](hardware.md#oled--gateway)
 
-Use the **display gateway sketch, revision 8**, for the 1.3-inch SH1106 blue OLED. Use the **no-display sketch, revision 6**, if you do not want an OLED or internet weather requests. Both retain the local browser dashboard and logs.
+Use gateway **Rev 20** for the optional 1.3-inch SH1106 OLED. The same sketch serves the dashboard and logs readings with or without the OLED. It skips the display and weather worker when an OLED is absent at startup.
 
 ## Screens and buttons
 
@@ -40,7 +40,7 @@ Requests use HTTPS certificate checking with ISRG Root X1; NTP time must be vali
 
 Weather: [Open-Meteo](https://open-meteo.com/). Location data: [GeoNames](https://www.geonames.org/) through the Open-Meteo geocoder.
 
-The included public weather endpoints are intended for **personal, non-commercial bench testing**. Before commercial deployment/distribution, arrange suitable service access or a site-owned endpoint. Do not assume the MIT software license grants weather-service usage rights. No weather API key or probe-upload endpoint is embedded in this build.
+The included public weather endpoints are intended for **personal, non-commercial bench testing**. Before commercial deployment/distribution, arrange suitable service access or a site-owned endpoint. Do not assume the MIT software license grants weather-service usage rights. The weather requests use the public endpoint without an API key.
 
 - [Weather API documentation](https://open-meteo.com/en/docs)
 - [Geocoding documentation](https://open-meteo.com/en/docs/geocoding-api)
