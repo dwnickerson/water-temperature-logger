@@ -4,7 +4,7 @@
 
 A remote temperature probe, a low-power LoRa transmitter, and a Wi-Fi gateway with local logging and a browser dashboard. A project by **The Southern Bluegill**.
 
-I’m building this to collect real water temperatures for long-term observations. The Seeed transmitter and gateway exchanged readings on the bench, and the transmitter went into the water on November 15 for an initial field trial. Solar power is being tested. Automatic website reporting is running in an invitation-only production pilot.
+I’m building this to collect real water temperatures for long-term observations. The Seeed transmitter and gateway are in an initial field trial. The transmitter has been running on a 3,000 mAh battery since November 13. On November 18, it was still reporting around 3.98 V. The recharge interval is still unknown. Solar power is being tested. Automatic website reporting is running in an invitation-only production pilot.
 
 **Current stage: initial field trial.** Seeed confirmed the fixed-channel LoRa profile is within the Wio-SX1262 DTS module grant. The antenna assembly, enclosure labeling and finished-host emissions checks are tracked in [radio status](docs/radio-status.md).
 
@@ -28,7 +28,7 @@ This is a custom point-to-point LoRa system, **not LoRaWAN and not Meshtastic**.
 
 On November 16, 2026, a field gateway running revision 18 paired with The Southern Bluegill and used the production service to upload a catch-up batch of 90 saved water-temperature readings. Owners in the pilot get a private dashboard with temperature history, time ranges, summary statistics and CSV export. Catch-up checks for readings missing from that gateway’s online history before the owner approves the upload.
 
-Receiver #2 is now running revision 20 in the invitation-only production pilot. Field testing confirmed that the gateway uploaded the single missing reading, showed its probe depth on the private dashboard, and resumed reporting after Wi-Fi connectivity returned.
+The field gateway is running revision 20 in the invitation-only production pilot. Field testing confirmed that the gateway uploaded the single missing reading, showed its probe depth on the private dashboard, and resumed reporting after Wi-Fi connectivity returned.
 
 Revision 20 firmware is publicly available. Access to online reporting is invitation-only. See the [project journal](https://thesouthernbluegill.com/observations/projects/water-temperature-logger/) for setup and pilot details.
 

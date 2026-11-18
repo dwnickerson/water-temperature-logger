@@ -11,7 +11,7 @@
 | Probe | One three-wire DS18B20 temperature probe | Check probe vendor specification |
 | Optional display | 1.3-inch SH1106, 128×64, four-pin I²C, blue pixels | Check controller, not screen size alone |
 
-These carriers have different wiring. Do not interchange their pin maps. The previous Heltec V3 prototype is historical and is not the target of the sketches in this repository.
+These carriers have different wiring. Do not interchange their pin maps.
 
 ## Probe → transmitter
 

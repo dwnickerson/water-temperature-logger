@@ -4,7 +4,7 @@
 
 ## What I have running
 
-I have moved from the original Heltec V3 prototype to a Seeed XIAO nRF52840 transmitter and XIAO ESP32S3 gateway, each with its matching Wio-SX1262 carrier. The transmitter reads one DS18B20 and sends about every 15 minutes. The gateway saves reports internally and serves a local dashboard over Wi-Fi.
+The field setup uses a Seeed XIAO nRF52840 transmitter and a XIAO ESP32S3 gateway, each with its matching Wio-SX1262 carrier. The transmitter reads one DS18B20 and sends about every 15 minutes. The gateway saves reports internally and serves a local dashboard over Wi-Fi.
 
 The gateway is a custom LoRa-to-Wi-Fi gateway, not a LoRaWAN gateway. The `receiver` filenames are retained to avoid disrupting Arduino sketch names.
 
@@ -29,14 +29,14 @@ See the [radio status](radio-status.md) for Seeed’s November 16 clarification 
 
 ## Outdoor battery-only test
 
-Started November 12, 2026, with a fully charged 3,000 mAh battery and no USB or solar connected. Node `75511ECEDAE223A0` reported **3.97 V at 5:29:34 AM CST**, its first reading under battery power. The Tupelo weather app showed **52°F air temperature at 5:31 AM**; that is nearby weather context, not a measurement at the battery. One reading does not establish battery capacity, drain rate or runtime.
+The initial battery-only reading was recorded November 12, 2026, with a fully charged 3,000 mAh battery and no USB or solar connected. Node `75511ECEDAE223A0` reported **3.97 V at 5:29:34 AM CST**, its first reading under battery power. The Tupelo weather app showed **52°F air temperature at 5:31 AM**; that is nearby weather context, not a measurement at the battery. For the current run, the transmitter has been on its 3,000 mAh battery since November 13. On November 18, after about five days, it was still reporting about 3.98 V. The trial is ongoing.
 
 ## Next steps in order
 
 1. Verify the installed antenna assembly, enclosure label and host integration for the reference build. See [radio status](radio-status.md).
-2. Finish gateway revision 9 and 7 checks: settings/log retention, display controls, weather/offline behavior and reception while weather updates.
+2. Extend revision 20 checks for log retention, reliability and operation without an OLED.
 3. Calibrate/check the probe against an appropriate reference and keep bench/air data clearly marked.
-4. Measure battery-only transmitter current and track morning voltage and air temperature during the battery-only trial before comparing it with solar operation.
+4. Track battery voltage and elapsed time until recharge before comparing battery-only and solar operation.
 5. Test weather protection, installation, range, restarts, router outages and storage limits.
 6. **Next experiment after the current validation: remote store-and-forward.** Log on the transmitter’s onboard flash with no permanent gateway; collect missing records during a site visit using verified batches and safe acknowledgments. Start with existing hardware and test timekeeping, power loss, interrupted downloads and confirmed-record reclaim. See the [experiment plan](store-and-forward.md). This is not implemented yet.
 7. Extend the private production pilot and review the quality of shared field measurements before considering them for model validation.
@@ -52,4 +52,4 @@ There is no measured “runs forever” solar result, guaranteed field battery l
 - No-display gateway revision 6: imported from the previous project download dated November 3, 2026. Original Git blob: `c85ac014cb597523d591538e07ed9520f67e1663`.
 - Transmitter flash sleep fix revision 2: imported from that same download set. Original Git blob: `f60c907d039d2ebf17db9b884beae6233e155252`.
 
-The previous journal/downloads were hosted with [The Southern Bluegill project page](https://thesouthernbluegill.com/observations/projects/water-temperature-logger/). This dedicated repository now groups the current Seeed firmware and documentation. Historical Heltec firmware is not a current build target here.
+The previous journal/downloads were hosted with [The Southern Bluegill project page](https://thesouthernbluegill.com/observations/projects/water-temperature-logger/). This dedicated repository now groups the current Seeed firmware and documentation.
