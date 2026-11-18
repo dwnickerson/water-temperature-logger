@@ -24,7 +24,7 @@ The ID is an identifier, not authentication. The radio uses private-sync-word po
 
 ## Current CSV schema
 
-Both gateway variants use the same 19-column `log-v4.csv` schema:
+Gateway Rev 20 uses the 19-column `log-v4.csv` schema:
 
 ```csv
 timestamp_utc,temp_f,rssi,batt_v,time_valid,uptime_ms,node_id,boot_id,sequence,quality,deployment_revision,water_body_name,water_type,latitude,longitude,probe_depth_m,deployment_effective_utc,location_name,location_basis
@@ -53,9 +53,9 @@ Saving deployment changes records a new history entry. New readings receive the 
 
 The documented gateway partition provides **1.5 MiB** for LittleFS. This is separate from program space. Actual free log space is lower after filesystem overhead, settings history, logs and archives. Weather is cached in RAM and does not consume log space.
 
-SD is disabled in both current gateway sketches. Older Heltec SD assignments are not verified Seeed wiring instructions.
+SD is disabled in Rev 20.
 
-Use **Save log** before **Clear current log**. Clearing affects the current log on active storage; it does not erase archived logs or deployment history. Archives are preserved, so free space still needs monitoring and management. There is no indefinite storage guarantee or fixed number of days without accounting for row length, history and archives. Download important data regularly.
+Use **Download CSV** before **Clear current log**. Clearing affects the current log on active storage; it does not erase archived logs or deployment history. Archives are preserved, so free space still needs monitoring and management. There is no indefinite storage guarantee or fixed number of days without accounting for row length, history and archives. Download important data regularly.
 
 Graphs show the current log with 24-hour, seven-day and all-current-log views. Archived files are accessed separately. A browser shows timestamped points in its own timezone.
 

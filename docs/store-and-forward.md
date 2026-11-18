@@ -8,7 +8,7 @@
 
 After finishing the current gateway, probe, battery/solar and recovery checks, I want to test a transmitter at a remote site with no permanent gateway or Wi-Fi. It would keep measuring and saving locally. A month or so later, I could visit with a portable gateway and collect the readings accumulated since the previous successful visit.
 
-This is the **next firmware experiment after the current build’s validation**, ahead of adding automatic website reporting. It is not a replacement for finishing the current tests. The current transmitter still has no stored log, receive/ACK window or backlog transfer, and the current gateway is LoRa receive-only.
+This is a planned firmware experiment. The invitation-only reporting pilot already uploads records stored on the gateway. The current transmitter still has no stored log, receive/ACK window or backlog transfer, and the current gateway is LoRa receive-only.
 
 ## Intended exchange
 
@@ -60,4 +60,4 @@ These are planning calculations, not an implemented format or measured retention
 7. Generate and collect a month-equivalent backlog; verify every expected record by identity, count and integrity checks, including gateway restart/export.
 8. Run a controlled remote/solar trial and record runtime, retention, time error, download duration and gaps.
 
-Only after those results should this become a supported remote deployment mode. Automatic website delivery and any model use remain separate later steps.
+Only after those results should this become a supported remote deployment mode. Website reporting from the gateway is already in a private pilot. Model use depends on measurement quality and validation.
